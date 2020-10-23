@@ -2,8 +2,8 @@
 version: "2.4"
 
 services:
-  oxshibboleth:
-    image: gluufederation/oxshibboleth:5.0.0_dev
+  auth-server:
+    image: janssenproject/auth-server:5.0.0_dev
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault
@@ -15,21 +15,24 @@ services:
       - CN_DOCUMENT_STORE_TYPE=${DOCUMENT_STORE_TYPE}
       - CN_JACKRABBIT_URL=http://jackrabbit:8080
       - CN_JACKRABBIT_ADMIN_ID=${JACKRABBIT_USER}
-      - CN_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/gluu/conf/jackrabbit_admin_password
+      - CN_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/jans/conf/jackrabbit_admin_password
+      - CN_SSL_CERT_FROM_SECRETS=true
     extra_hosts:
       - "${DOMAIN}:${HOST_IP}"
-    container_name: oxshibboleth
+    container_name: auth-server
     volumes:
       - ./vault_role_id.txt:/etc/certs/vault_role_id
       - ./vault_secret_id.txt:/etc/certs/vault_secret_id
       - ./couchbase.crt:/etc/certs/couchbase.crt
-      - ./couchbase_password:/etc/gluu/conf/couchbase_password
-      - ./jackrabbit_admin_password:/etc/gluu/conf/jackrabbit_admin_password
-    mem_limit: 1024M
+      - ./couchbase_password:/etc/jans/conf/couchbase_password
+      - ./jackrabbit_admin_password:/etc/jans/conf/jackrabbit_admin_password
+      - /home/iromli/work/janssen/jans-pycloudlib:/src/jans-pycloudlib
+      - /home/iromli/work/janssen/docker-jans-auth-server/scripts:/app/scripts
+    mem_limit: 1536M
     restart: unless-stopped
     labels:
-      - "SERVICE_NAME=oxshibboleth"
-      - "SERVICE_8086_CHECK_HTTP=/idp"
-      - "SERVICE_8086_CHECK_INTERVAL=30s"
-      - "SERVICE_8086_CHECK_TIMEOUT=30s"
-      - "APP_NAME=oxshibboleth"
+      - "SERVICE_NAME=jans-auth"
+      - "SERVICE_8080_CHECK_HTTP=/jans-auth/restv1/health-check"
+      - "SERVICE_8080_CHECK_INTERVAL=30s"
+      - "SERVICE_8080_CHECK_TIMEOUT=30s"
+      - "APP_NAME=jans-auth"

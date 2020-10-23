@@ -3,15 +3,15 @@ version: "2.4"
 
 services:
   scim:
-    image: gluufederation/scim:4.2.1_02
+    image: janssenproject/scim:5.0.0_dev
     environment:
-      - GLUU_CONFIG_CONSUL_HOST=consul
-      - GLUU_SECRET_VAULT_HOST=vault
-      - GLUU_PERSISTENCE_TYPE=${PERSISTENCE_TYPE}
-      - GLUU_PERSISTENCE_LDAP_MAPPING=${PERSISTENCE_LDAP_MAPPING}
-      - GLUU_LDAP_URL=ldap:1636
-      - GLUU_COUCHBASE_URL=${COUCHBASE_URL}
-      - GLUU_COUCHBASE_USER=${COUCHBASE_USER}
+      - CN_CONFIG_CONSUL_HOST=consul
+      - CN_SECRET_VAULT_HOST=vault
+      - CN_PERSISTENCE_TYPE=${PERSISTENCE_TYPE}
+      - CN_PERSISTENCE_LDAP_MAPPING=${PERSISTENCE_LDAP_MAPPING}
+      - CN_LDAP_URL=ldap:1636
+      - CN_COUCHBASE_URL=${COUCHBASE_URL}
+      - CN_COUCHBASE_USER=${COUCHBASE_USER}
     extra_hosts:
       - "${DOMAIN}:${HOST_IP}"
     container_name: scim
@@ -24,6 +24,6 @@ services:
     restart: unless-stopped
     labels:
       - "SERVICE_NAME=scim"
-      - "SERVICE_8080_CHECK_HTTP=/scim/restv1/scim/v2/ServiceProviderConfig"
+      - "SERVICE_8080_CHECK_HTTP=/jans-scim/restv1/scim/v2/ServiceProviderConfig"
       - "SERVICE_8080_CHECK_INTERVAL=30s"
       - "SERVICE_8080_CHECK_TIMEOUT=30s"

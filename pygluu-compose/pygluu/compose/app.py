@@ -25,21 +25,27 @@ from .settings import DEFAULT_SETTINGS
 from .settings import COMPOSE_MAPPINGS
 
 CONFIG_DIR = "volumes/config-init/db"
+EMAIL_RGX = re.compile(
+    r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+)
+PASSWD_RGX = re.compile(
+    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W)[a-zA-Z0-9\S]{6,}$"
+)
 
 
-class ContainerHelper(object):
+class ContainerHelper:
     def __init__(self, name, docker_client):
         self.name = name
         self.docker = docker_client
 
-    def exec(self, cmd):
+    def exec(self, cmd):  # noqa: A003
         exec_id = self.docker.exec_create(self.name, cmd).get("Id")
         retval = self.docker.exec_start(exec_id)
         retcode = self.docker.exec_inspect(exec_id).get("ExitCode")
         return retval, retcode
 
 
-class Secret(object):
+class Secret:
     UNSEAL_KEY_RE = re.compile(r"^Unseal Key 1: (.+)", re.M)
     ROOT_TOKEN_RE = re.compile(r"^Initial Root Token: (.+)", re.M)
 
@@ -102,15 +108,15 @@ class Secret(object):
         print("[I] Unsealing Vault manually")
         self.container.exec("vault operator unseal {}".format(self.creds["key"]))
 
-    def write_policy(self):
+    def write_policy(self, namespace="jans"):
         policies, _ = self.container.exec("vault policy list")
-        if b"gluu" in policies.splitlines():
+        if b"jans" in policies.splitlines():
             return
 
-        print("[I] Creating Vault policy for Gluu")
-        self.container.exec("vault policy write gluu /vault/config/policy.hcl")
+        print("[I] Creating Vault policy for Janssen")
+        self.container.exec(f"vault policy write {namespace} /vault/config/policy.hcl")
 
-    def enable_approle(self):
+    def enable_approle(self, namespace="jans"):
         raw, retcode = self.container.exec("vault auth list -format yaml")
 
         if retcode != 0:
@@ -125,9 +131,9 @@ class Secret(object):
         print("[I] Enabling Vault AppRole auth")
 
         self.container.exec("vault auth enable approle")
-        self.container.exec("vault write auth/approle/role/gluu policies=gluu")
+        self.container.exec(f"vault write auth/approle/role/{namespace} policies={namespace}")
         self.container.exec(
-            "vault write auth/approle/role/gluu "
+            f"vault write auth/approle/role/{namespace}"
             "secret_id_ttl=0 "
             "token_num_uses=0 "
             "token_ttl=20m "
@@ -135,13 +141,13 @@ class Secret(object):
             "secret_id_num_uses=0"
         )
 
-        role_id, _ = self.container.exec("vault read -field=role_id auth/approle/role/gluu/role-id")
+        role_id, _ = self.container.exec(f"vault read -field=role_id auth/approle/role/{namespace}/role-id")
         pathlib.Path("vault_role_id.txt").write_text(role_id.decode())
 
-        secret_id, _ = self.container.exec("vault write -f -field=secret_id auth/approle/role/gluu/secret-id")
+        secret_id, _ = self.container.exec(f"vault write -f -field=secret_id auth/approle/role/{namespace}/secret-id")
         pathlib.Path("vault_secret_id.txt").write_text(secret_id.decode())
 
-    def setup(self):
+    def setup(self, namespace="jans"):
         status = self.status()
 
         if not status["initialized"]:
@@ -154,16 +160,16 @@ class Secret(object):
         time.sleep(5)
         with self.login():
             time.sleep(5)
-            self.write_policy()
+            self.write_policy(namespace)
             time.sleep(5)
-            self.enable_approle()
+            self.enable_approle(namespace)
 
 
 class Config(object):
     def __init__(self, docker_client):
         self.container = ContainerHelper("consul", docker_client)
 
-    def hostname_from_backend(self):
+    def hostname_from_backend(self, namespace="jans"):
         print("[I] Attempting to gather FQDN from Consul")
 
         hostname = ""
@@ -171,7 +177,7 @@ class Config(object):
 
         while retry <= 3:
             value, _ = self.container.exec(
-                f"consul kv get -http-addr=http://consul:8500 gluu/config/hostname"
+                f"consul kv get -http-addr=http://consul:8500 {namespace}/config/hostname"
             )
             if not value.startswith(b"Error"):
                 hostname = value.strip().decode()
@@ -336,16 +342,9 @@ class App(object):
             raise click.Abort()
 
     def generate_params(self, file_):
-        EMAIL_RGX = re.compile(
-            r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-        )
-        PASSWD_RGX = re.compile(
-            r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W)[a-zA-Z0-9\S]{6,}$"
-        )
-
         def prompt_hostname():
             while True:
-                value = click.prompt("Enter hostname", default="demoexample.gluu.org")
+                value = click.prompt("Enter hostname", default="demoexample.jans.io")
                 if len(value.split(".")) > 2:
                     return value
                 click.echo("Hostname has to be at least three domain components.")
@@ -359,7 +358,7 @@ class App(object):
 
         def prompt_email():
             while True:
-                value = click.prompt("Enter email", default="support@demoexample.gluu.org")
+                value = click.prompt("Enter email", default="support@demoexample.jans.io")
                 if EMAIL_RGX.match(value):
                     return value
                 print("Invalid email address.")
@@ -392,7 +391,7 @@ class App(object):
             params["ldap_pw"] = params["admin_pw"]
 
         params["email"] = self.settings["EMAIL"] or prompt_email()
-        params["org_name"] = self.settings["ORG_NAME"] or click.prompt("Enter organization", default="Gluu")
+        params["org_name"] = self.settings["ORG_NAME"] or click.prompt("Enter organization", default="Janssen")
 
         if self.settings["CACHE_TYPE"] == "REDIS":
             params["redis_pw"] = self.settings["REDIS_PW"] or click.prompt("Enter Redis password: ", default="")
@@ -411,11 +410,11 @@ class App(object):
                 self._up(["vault"])
 
             secret = Secret(tlc.project.client)
-            secret.setup()
+            secret.setup(self.settings["SECRET_NAMESPACE"])
 
             config = Config(tlc.project.client)
 
-            hostname = config.hostname_from_backend()
+            hostname = config.hostname_from_backend(self.settings["CONFIG_NAMESPACE"])
             if hostname:
                 self.settings["DOMAIN"] = hostname
                 print(f"[I] Using {self.settings['DOMAIN']} as FQDN")
@@ -432,20 +431,22 @@ class App(object):
                 self.settings["DOMAIN"] = params["hostname"]
 
             print(f"[I] Using {self.settings['DOMAIN']} as FQDN")
-            self.run_config_init()
+            # self.run_config_init()
 
-            # cleanup
-            with contextlib.suppress(FileNotFoundError):
-                pathlib.Path(gen_file).unlink()
+            # # cleanup
+            # with contextlib.suppress(FileNotFoundError):
+            #     pathlib.Path(gen_file).unlink()
 
     def run_config_init(self):
         workdir = os.getcwd()
-        image = f"gluufederation/config-init:{self.settings['CONFIG_INIT_VERSION']}"
+        image = f"janssenproject/configuration-manager:{self.settings['CONFIG_INIT_VERSION']}"
 
         volumes = [
             f"{workdir}/{CONFIG_DIR}:/app/db/",
             f"{workdir}/vault_role_id.txt:/etc/certs/vault_role_id",
             f"{workdir}/vault_secret_id.txt:/etc/certs/vault_secret_id",
+            # "/home/iromli/work/janssen/jans-pycloudlib:/src/jans-pycloudlib",
+            # "/home/iromli/work/janssen/docker-jans-configuration-manager/scripts:/app/scripts",
         ]
 
         gen_file = f"{workdir}/generate.json"
@@ -457,7 +458,7 @@ class App(object):
             while retry < 3:
                 try:
                     if not tlc.project.client.images(name=image):
-                        print(f"{self.settings['CONFIG_INIT_VERSION']}: Pulling from gluufederation/config-init")
+                        print(f"{self.settings['CONFIG_INIT_VERSION']}: Pulling from janssenproject/configuration-manager")
                         tlc.project.client.pull(image)
                         break
                 except (requests.exceptions.Timeout, docker.errors.APIError) as exc:
@@ -469,12 +470,14 @@ class App(object):
             cid = None
             try:
                 cid = tlc.project.client.create_container(
-                    image=f"gluufederation/config-init:{self.settings['CONFIG_INIT_VERSION']}",
+                    image=f"janssenproject/configuration-manager:{self.settings['CONFIG_INIT_VERSION']}",
                     name="config-init",
                     command="load",
                     environment={
-                        "GLUU_CONFIG_CONSUL_HOST": "consul",
-                        "GLUU_SECRET_VAULT_HOST": "vault",
+                        "JANS_CONFIG_CONSUL_HOST": "consul",
+                        "JANS_CONFIG_CONSUL_NAMESPACE": "jans",
+                        "JANS_SECRET_VAULT_HOST": "vault",
+                        "JANS_SECRET_VAULT_NAMESPACE": "jans",
                     },
                     host_config=HostConfig(
                         version="1.25",
@@ -508,7 +511,7 @@ class App(object):
         wait_delay = 10
 
         print(
-            "[I] Launching Gluu Server; to see logs on deployment process, "
+            "[I] Launching Janssen Server; to see logs on deployment process, "
             "please run 'logs -f' command on separate terminal"
         )
         with click_spinner.spinner():
@@ -516,11 +519,11 @@ class App(object):
             while elapsed <= wait_max:
                 with contextlib.suppress(requests.exceptions.ConnectionError):
                     req = requests.get(
-                        f"https://{self.settings['HOST_IP']}/identity/restv1/health-check",
+                        f"https://{self.settings['HOST_IP']}/jans-auth/restv1/health-check",
                         verify=False,
                     )
                     if req.ok:
-                        print(f"\n[I] Gluu Server installed successfully; please visit https://{self.settings['DOMAIN']}")
+                        print(f"\n[I] Janssen Server installed successfully; please visit https://{self.settings['DOMAIN']}")
                         return
 
                 time.sleep(wait_delay)

@@ -24,7 +24,7 @@ services:
       - ./volumes/vault/config:/vault/config
       - ./volumes/vault/data:/vault/data
       - ./volumes/vault/logs:/vault/logs
-      - ./vault_gluu_policy.hcl:/vault/config/policy.hcl
+      - ./vault_policy.hcl:/vault/config/policy.hcl
     cap_add:
       - IPC_LOCK
     environment:
@@ -49,10 +49,10 @@ services:
     mem_limit: 512M
 
   nginx:
-    image: gluufederation/nginx:4.2.1_01
+    image: gluufederation/nginx:5.0.0_dev
     environment:
-      - GLUU_CONFIG_CONSUL_HOST=consul
-      - GLUU_SECRET_VAULT_HOST=vault
+      - CN_CONFIG_CONSUL_HOST=consul
+      - CN_SECRET_VAULT_HOST=vault
     ports:
       - "80:80"
       - "443:443"
