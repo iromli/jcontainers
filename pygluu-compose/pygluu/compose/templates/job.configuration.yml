@@ -3,6 +3,7 @@ version: "2.4"
 services:
   configuration:
     image: janssenproject/configuration-manager:5.0.0_dev
+    command: load
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault

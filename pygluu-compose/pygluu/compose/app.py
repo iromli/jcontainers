@@ -11,15 +11,12 @@ import time
 
 import click
 import click_spinner
-import docker.errors
-import requests.exceptions
 import stdiomask
 from compose.cli.command import get_project
 from compose.cli.command import get_config_path_from_options
 from compose.cli.main import TopLevelCommand
 from compose.config.config import yaml
 from compose.config.environment import Environment
-from docker.types import HostConfig
 
 from .settings import DEFAULT_SETTINGS
 from .settings import COMPOSE_MAPPINGS
@@ -431,69 +428,6 @@ class App(object):
                 self.settings["DOMAIN"] = params["hostname"]
 
             print(f"[I] Using {self.settings['DOMAIN']} as FQDN")
-            # self.run_config_init()
-
-            # # cleanup
-            # with contextlib.suppress(FileNotFoundError):
-            #     pathlib.Path(gen_file).unlink()
-
-    def run_config_init(self):
-        workdir = os.getcwd()
-        image = f"janssenproject/configuration-manager:{self.settings['CONFIG_INIT_VERSION']}"
-
-        volumes = [
-            f"{workdir}/{CONFIG_DIR}:/app/db/",
-            f"{workdir}/vault_role_id.txt:/etc/certs/vault_role_id",
-            f"{workdir}/vault_secret_id.txt:/etc/certs/vault_secret_id",
-            # "/home/iromli/work/janssen/jans-pycloudlib:/src/jans-pycloudlib",
-            # "/home/iromli/work/janssen/docker-jans-configuration-manager/scripts:/app/scripts",
-        ]
-
-        gen_file = f"{workdir}/generate.json"
-        if os.path.isfile(gen_file):
-            volumes.append(f"{gen_file}:/app/db/generate.json")
-
-        with self.top_level_cmd() as tlc:
-            retry = 0
-            while retry < 3:
-                try:
-                    if not tlc.project.client.images(name=image):
-                        print(f"{self.settings['CONFIG_INIT_VERSION']}: Pulling from janssenproject/configuration-manager")
-                        tlc.project.client.pull(image)
-                        break
-                except (requests.exceptions.Timeout, docker.errors.APIError) as exc:
-                    print(f"[W] Unable to get {image}; reason={exc}; "
-                          "retrying in 10 seconds")
-                time.sleep(10)
-                retry += 1
-
-            cid = None
-            try:
-                cid = tlc.project.client.create_container(
-                    image=f"janssenproject/configuration-manager:{self.settings['CONFIG_INIT_VERSION']}",
-                    name="config-init",
-                    command="load",
-                    environment={
-                        "JANS_CONFIG_CONSUL_HOST": "consul",
-                        "JANS_CONFIG_CONSUL_NAMESPACE": "jans",
-                        "JANS_SECRET_VAULT_HOST": "vault",
-                        "JANS_SECRET_VAULT_NAMESPACE": "jans",
-                    },
-                    host_config=HostConfig(
-                        version="1.25",
-                        network_mode=self.network_name,
-                        binds=volumes,
-                    ),
-                ).get("Id")
-
-                tlc.project.client.start(cid)
-                for log in tlc.project.client.logs(cid, stream=True):
-                    print(log.decode().strip())
-            except Exception:
-                raise
-            finally:
-                if cid:
-                    tlc.project.client.remove_container(cid, force=True)
 
     def up(self):
         self.check_ports()
@@ -553,9 +487,13 @@ class App(object):
         curdir = os.getcwd()
         for entry in entries.iterdir():
             dst = os.path.join(curdir, entry.name)
+
             if os.path.exists(dst):
+                print(f"[W] Skipping existing {dst}")
                 continue
+
             shutil.copy(entry, dst)
+            print(f"[I] Creating new {dst}")
 
     def check_ports(self):
         def _check(host, port):
