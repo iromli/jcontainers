@@ -22,7 +22,7 @@ services:
       - ./vault_role_id.txt:/etc/certs/vault_role_id
       - ./vault_secret_id.txt:/etc/certs/vault_secret_id
       - ./couchbase.crt:/etc/certs/couchbase.crt
-      - ./couchbase_password:/etc/gluu/conf/couchbase_password
+      - ./couchbase_password:/etc/jans/conf/couchbase_password
     labels:
       - "SERVICE_NAME=jans-config-api"
       - "SERVICE_8074_CHECK_HTTP=/"

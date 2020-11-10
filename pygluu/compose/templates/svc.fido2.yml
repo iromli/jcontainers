@@ -19,11 +19,11 @@ services:
       - ./vault_role_id.txt:/etc/certs/vault_role_id
       - ./vault_secret_id.txt:/etc/certs/vault_secret_id
       - ./couchbase.crt:/etc/certs/couchbase.crt
-      - ./couchbase_password:/etc/gluu/conf/couchbase_password
+      - ./couchbase_password:/etc/jans/conf/couchbase_password
     mem_limit: 1024M
     restart: unless-stopped
     labels:
       - "SERVICE_NAME=fido2"
-      - "SERVICE_8080_CHECK_HTTP=/jans-fido2/restv1/fido2/configuration"
+      - "SERVICE_8080_CHECK_HTTP=/jans-fido2/restv1/configuration"
       - "SERVICE_8080_CHECK_INTERVAL=30s"
       - "SERVICE_8080_CHECK_TIMEOUT=30s"

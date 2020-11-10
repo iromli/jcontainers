@@ -30,7 +30,7 @@ services:
       - CN_DOCUMENT_STORE_TYPE=${DOCUMENT_STORE_TYPE}
       - CN_JACKRABBIT_URL=http://jackrabbit:8080
       - CN_JACKRABBIT_ADMIN_ID=${JACKRABBIT_USER}
-      - CN_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/gluu/conf/jackrabbit_admin_password
+      - CN_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/jans/conf/jackrabbit_admin_password
     extra_hosts:
       - "${DOMAIN}:${HOST_IP}"
     container_name: persistence
@@ -38,8 +38,8 @@ services:
       - ./vault_role_id.txt:/etc/certs/vault_role_id
       - ./vault_secret_id.txt:/etc/certs/vault_secret_id
       - ./couchbase.crt:/etc/certs/couchbase.crt
-      - ./couchbase_password:/etc/gluu/conf/couchbase_password
-      - ./couchbase_superuser_password:/etc/gluu/conf/couchbase_superuser_password
-      - ./jackrabbit_admin_password:/etc/gluu/conf/jackrabbit_admin_password
+      - ./couchbase_password:/etc/jans/conf/couchbase_password
+      - ./couchbase_superuser_password:/etc/jans/conf/couchbase_superuser_password
+      - ./jackrabbit_admin_password:/etc/jans/conf/jackrabbit_admin_password
     restart: on-failure
     mem_limit: 512M
