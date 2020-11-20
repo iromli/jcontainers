@@ -24,6 +24,6 @@ services:
     restart: unless-stopped
     labels:
       - "SERVICE_NAME=scim"
-      - "SERVICE_8080_CHECK_HTTP=/jans-scim/restv1/v2/ServiceProviderConfig"
+      - "SERVICE_8080_CHECK_HTTP=/jans-scim/sys/health-check"
       - "SERVICE_8080_CHECK_INTERVAL=30s"
       - "SERVICE_8080_CHECK_TIMEOUT=30s"

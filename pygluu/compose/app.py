@@ -453,7 +453,7 @@ class App(object):
             while elapsed <= wait_max:
                 with contextlib.suppress(requests.exceptions.ConnectionError):
                     req = requests.get(
-                        f"https://{self.settings['HOST_IP']}/jans-auth/restv1/health-check",
+                        f"https://{self.settings['HOST_IP']}/jans-auth/sys/health-check",
                         verify=False,
                     )
                     if req.ok:

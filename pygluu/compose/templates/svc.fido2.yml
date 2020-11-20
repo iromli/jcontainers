@@ -24,6 +24,6 @@ services:
     restart: unless-stopped
     labels:
       - "SERVICE_NAME=fido2"
-      - "SERVICE_8080_CHECK_HTTP=/jans-fido2/restv1/configuration"
+      - "SERVICE_8080_CHECK_HTTP=/jans-fido2/sys/health-check"
       - "SERVICE_8080_CHECK_INTERVAL=30s"
       - "SERVICE_8080_CHECK_TIMEOUT=30s"

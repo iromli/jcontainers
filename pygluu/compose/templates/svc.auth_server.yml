@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     labels:
       - "SERVICE_NAME=jans-auth"
-      - "SERVICE_8080_CHECK_HTTP=/jans-auth/restv1/health-check"
+      - "SERVICE_8080_CHECK_HTTP=/jans-auth/sys/health-check"
       - "SERVICE_8080_CHECK_INTERVAL=30s"
       - "SERVICE_8080_CHECK_TIMEOUT=30s"
       - "APP_NAME=jans-auth"
