@@ -3,7 +3,7 @@ version: "2.4"
 
 services:
   auth-server:
-    image: janssenproject/auth-server:5.0.0_dev
+    image: janssenproject/auth-server:1.0.0_dev
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault

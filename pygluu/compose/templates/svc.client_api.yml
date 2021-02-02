@@ -3,7 +3,7 @@ version: "2.4"
 
 services:
   client-api:
-    image: janssenproject/client-api:5.0.0_dev
+    image: janssenproject/client-api:1.0.0_dev
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault

@@ -2,7 +2,7 @@
 version: "2.4"
 services:
   persistence:
-    image: janssenproject/persistence-loader:5.0.0_dev
+    image: janssenproject/persistence-loader:1.0.0_dev
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault
