@@ -26,8 +26,6 @@ services:
       - ./couchbase.crt:/etc/certs/couchbase.crt
       - ./couchbase_password:/etc/jans/conf/couchbase_password
       - ./jackrabbit_admin_password:/etc/jans/conf/jackrabbit_admin_password
-      - /home/iromli/work/janssen/jans-pycloudlib:/src/jans-pycloudlib
-      - /home/iromli/work/janssen/docker-jans-auth-server/scripts:/app/scripts
     mem_limit: 1536M
     restart: unless-stopped
     labels:
