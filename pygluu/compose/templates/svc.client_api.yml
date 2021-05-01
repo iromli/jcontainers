@@ -12,8 +12,8 @@ services:
       - CN_LDAP_URL=ldap:1636
       - CN_COUCHBASE_URL=${COUCHBASE_URL}
       - CN_COUCHBASE_USER=${COUCHBASE_USER}
-      - CN_OXD_APPLICATION_CERT_CN=client-api
-      - CN_OXD_ADMIN_CERT_CN=client-api
+      - CN_CLIENT_API_APPLICATION_CERT_CN=client-api
+      - CN_CLIENT_API_ADMIN_CERT_CN=client-api
     container_name: client-api
     restart: unless-stopped
     mem_limit: 1024M

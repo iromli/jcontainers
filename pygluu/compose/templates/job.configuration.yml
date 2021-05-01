@@ -7,6 +7,7 @@ services:
     environment:
       - CN_CONFIG_CONSUL_HOST=consul
       - CN_SECRET_VAULT_HOST=vault
+      - CN_CONFIGURATION_SKIP_INITIALIZED=${CONFIGURATION_SKIP_INITIALIZED}
     extra_hosts:
       - "${DOMAIN}:${HOST_IP}"
     container_name: configuration

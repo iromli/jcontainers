@@ -25,6 +25,6 @@ services:
       - ./couchbase_password:/etc/jans/conf/couchbase_password
     labels:
       - "SERVICE_NAME=jans-config-api"
-      - "SERVICE_8074_CHECK_HTTP=/"
+      - "SERVICE_8074_CHECK_HTTP=/health-check"
       - "SERVICE_8074_CHECK_INTERVAL=30s"
       - "SERVICE_8074_CHECK_TIMEOUT=30s"

@@ -55,7 +55,7 @@ class Secret:
         try:
             self.container.exec("vault login {}".format(token))
             yield
-        except Exception:
+        except Exception:  # noqa: B902
             raise
 
     @property
@@ -210,6 +210,8 @@ class App(object):
             os.environ["COMPOSE_FILE"] = compose_files
 
             for k, v in self.settings.items():
+                if k == "CONFIGURATION_OPTIONAL_SCOPES":
+                    continue
                 if isinstance(v, bool):
                     v = f"{v}".lower()
                 os.environ[k] = v
@@ -220,7 +222,7 @@ class App(object):
             project = get_project(os.getcwd(), config_path, environment=env)
             tlc = TopLevelCommand(project)
             yield tlc
-        except Exception:
+        except Exception:  # noqa: B902
             raise
 
     def get_settings(self):
@@ -375,22 +377,42 @@ class App(object):
                     continue
                 return passwd
 
+        def prompt_optional_scopes():
+            allowed_scopes = ["ldap", "scim", "fido2", "redis", "couchbase"]
+            allowed_scopes_fmt = ",".join(allowed_scopes)
+            valid = True
+
+            while True:
+                value = click.prompt("Optional configuration scopes (space-separated value)", default="").split()
+
+                for scope in value:
+                    if scope not in allowed_scopes_fmt:
+                        print(f"Unsupported {scope} scope; please choose one or more value from {allowed_scopes_fmt}")
+                        valid = False
+                        continue
+
+                print(valid)
+                if valid:
+                    return value
+
         params = {}
         params["hostname"] = self.settings["DOMAIN"] or prompt_hostname()
         params["country_code"] = self.settings["COUNTRY_CODE"] or prompt_country_code()
         params["state"] = self.settings["STATE"] or click.prompt("Enter state", default="TX")
         params["city"] = self.settings["CITY"] or click.prompt("Enter city", default="Austin")
         params["admin_pw"] = self.settings["ADMIN_PW"] or prompt_password("Enter admin password: ")
+        params["optional_scopes"] = self.settings["CONFIGURATION_OPTIONAL_SCOPES"] or prompt_optional_scopes()
 
-        if self.settings["PERSISTENCE_TYPE"] in ("ldap", "hybrid"):
-            params["ldap_pw"] = self.settings["LDAP_PW"] or prompt_password("Enter LDAP admin password: ")
-        else:
-            params["ldap_pw"] = params["admin_pw"]
+        if "ldap" in params["optional_scopes"]:
+            if self.settings["PERSISTENCE_TYPE"] in ("ldap", "hybrid"):
+                params["ldap_pw"] = self.settings["LDAP_PW"] or prompt_password("Enter LDAP admin password: ")
+            else:
+                params["ldap_pw"] = params["admin_pw"]
 
         params["email"] = self.settings["EMAIL"] or prompt_email()
         params["org_name"] = self.settings["ORG_NAME"] or click.prompt("Enter organization", default="Janssen")
 
-        if self.settings["CACHE_TYPE"] == "REDIS":
+        if "redis" in params["optional_scopes"] and self.settings["CACHE_TYPE"] == "REDIS":
             params["redis_pw"] = self.settings["REDIS_PW"] or click.prompt("Enter Redis password: ", default="")
 
         pathlib.Path(file_).write_text(json.dumps(params, sort_keys=True, indent=4))
@@ -424,7 +446,11 @@ class App(object):
             if hostname:
                 self.settings["DOMAIN"] = hostname
             else:
-                params = self.generate_params(gen_file)
+                if not os.path.isfile(gen_file):
+                    params = self.generate_params(gen_file)
+                else:
+                    with open(gen_file) as f:
+                        params = json.loads(f.read())
                 self.settings["DOMAIN"] = params["hostname"]
 
             print(f"[I] Using {self.settings['DOMAIN']} as FQDN")
