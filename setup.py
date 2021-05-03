@@ -30,7 +30,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "Click!=7.0,>=6.7",
-        "docker-compose>=1.25.0,<1.28",
+        "docker-compose>=1.25.0,<1.30",
         "stdiomask>=0.0.4",
         "click-spinner>=0.1.10",
     ],
